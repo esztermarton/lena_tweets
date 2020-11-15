@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "lena_tweets"
+version = "0.0.1"
+description = "Tool to scrape tweets"
+authors = ["Rebeka Marrton <rebekamarton@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "~3.8.1"
+dagit = "0.9.5"
+dagster = "0.9.5"
+twint = "2.1.20"
+
+[tool.poetry.dev-dependencies]
+jupyter = "1.0.0"

@@ -27,6 +27,8 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+lenv
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -127,3 +129,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Editor
+.vscode
