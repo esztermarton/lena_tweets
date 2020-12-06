@@ -4,13 +4,7 @@ from typing import List, Optional, Union, Tuple
 import tweepy
 from tweepy import User, Status
 
-api_key = ""
-key_secret = ""
-consumer_key = api_key
-consumer_secret = key_secret
-
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+from lena_tweets.auth import authenticate
 
 
 def _get_data_points(func, count: int = 200):
@@ -34,6 +28,7 @@ def get_friends(screen_name: str, count: int = 200) -> Tuple[User, List[User]]:
     """
     Generates list of people that twitter user with particular handle follows.
     """
+    api = authenticate()
     user = api.get_user(screen_name)
 
     friends = _get_data_points(user.friends, count=count)
@@ -55,6 +50,7 @@ def lookup_users(ids: List[Union[int, str]], screen_name: bool = False) -> List[
 def lookup_100_friends(
     ids: List[Union[int, str]], screen_name: bool = False
 ) -> List[User]:
+    api = authenticate()
     if screen_name:
         return api.lookup_users(screen_names=ids)
     return api.lookup_users(user_ids=ids)
@@ -85,6 +81,7 @@ def get_user_tweets(id: int, since_id: Optional[int] = None) -> List[Status]:
     """
     Returns tweets of a user
     """
+    api = authenticate()
     tweets = _get_data_points_since(
         partial(api.user_timeline, user_id=id, since_id=since_id)
     )

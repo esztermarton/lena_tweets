@@ -6,3 +6,6 @@ STUDY_INPUT_START_PART = "study_input.csv"
 STUDY_END_PATH = "{}_users_study_end.csv"
 USER_TRACKER_PATH = "user_tracker.csv"
 DAILY_TWEETS_PATH = "{}_tweets.csv"
+
+# Fill out before deploying!
+CREDS = []
