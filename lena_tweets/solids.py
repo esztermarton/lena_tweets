@@ -16,12 +16,14 @@ from lena_tweets.config import (
     STUDY_INPUT_START_PART,
     PARTICIPANTS_QUEUE,
     USER_TRACKER_PATH,
+    TWEET_HISTORY,
 )
 from lena_tweets.scrape_twitter import (
     get_friends,
     get_user_tweets,
     get_friends_ids,
     lookup_users,
+    get_all_most_recent_tweets,
 )
 
 
@@ -55,7 +57,7 @@ def collect_user_information(context, individuals_to_monitor: List[str]):
 
 
 @solid
-def get_ids_collect_info(context):
+def get_ids_collect_info(context) -> List[int]:
     """
     Converts a file of screen names to user ids & collects study start info
     """
@@ -86,6 +88,38 @@ def get_ids_collect_info(context):
 
     with open(first_today_file, "w") as f:
         f.writelines(participants)
+
+    return [int(p) for p in participants]
+
+
+@solid
+def collect_tweets_history_of_user(context, user_ids: List[int]):
+    """
+    Collects tweets the user tweets
+    """
+    timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
+
+    statuses = []
+    for user_id in user_ids:
+        new_statuses = _convert_tweets_to_dataframe(user_id, get_all_most_recent_tweets(user_id))
+        statuses.append(new_statuses)
+
+        # No lock file, since this will be done pre-study.
+        df = pd.read_csv(USER_TRACKER_PATH).set_index("user_id")
+        df.at[user_id, "tweets_last_retrieved"] = datetime.now()
+        if len(new_statuses):
+            df.at[user_id, "latest_tweet_id"] = int(new_statuses.iloc[0]["id"])
+        df.to_csv(USER_TRACKER_PATH)
+
+        context.log.info(f"Updated user_id {user_id}, {len(new_statuses)} new tweets")
+
+
+    statuses = pd.concat(statuses)
+
+    tweet_file_path = Path(TWEET_HISTORY)
+    statuses.to_csv(
+        tweet_file_path, index=False
+    )
 
 
 @solid(config_schema={"timestamp": str})
@@ -228,7 +262,7 @@ def collect_tweets_of_user(context):
     )
 
     while lock_file_a.exists():
-        time.sleep(0.1)
+        time.sleep(0.01)
 
     with open(lock_file_b, "w") as f:
         f.write("")
@@ -275,5 +309,5 @@ def _convert_friends_to_dataframe(users: List[User]):
 
 def _convert_tweets_to_dataframe(user_id: int, tweets: List[Status]):
     return pd.DataFrame(
-        [{"user_id": user_id, "id": tweet.id, "text": tweet.text} for tweet in tweets]
+        [{"user_id": user_id, "id": tweet.id, "text": tweet.text, "created_at": tweet.created_at} for tweet in tweets]
     )
