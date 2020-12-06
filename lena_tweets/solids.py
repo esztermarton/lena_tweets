@@ -145,7 +145,7 @@ def read_in_user(_) -> int:
 
     # Write current screen name to tomorrow's file
     with open(tomorrow_file, "a") as f:
-        f.write(f"{next_user_id}")
+        f.write(f"\n{next_user_id}")
 
     return int(next_user_id.strip())
 
@@ -191,6 +191,7 @@ def lookup_users_daily(context, users: List[int]):
         if not new_user_ids:
             return
 
+        new_users = _convert_users_to_records(lookup_users(new_user_ids))
         pd.concat([df, pd.DataFrame(new_users)]).to_csv(USER_TRACKER_PATH, index=False)
     finally:
         if lock_file_a.exists():
@@ -213,11 +214,9 @@ def collect_tweets_of_user(context):
         latest_tweet_id = None
     else:
         user_id = df.sort_values("tweets_last_retrieved").iloc[0].name
-        latest_tweet_id = df.sort_values("tweets_last_retrieved").iloc[0]["latest_tweet_id"]
+        latest_tweet_id = int(df.sort_values("tweets_last_retrieved").iloc[0]["latest_tweet_id"])
 
-    context.log.info(str(int(latest_tweet_id)))
-
-    statuses = _convert_tweets_to_dataframe(user_id, get_user_tweets(user_id, since_id=int(latest_tweet_id)))
+    statuses = _convert_tweets_to_dataframe(user_id, get_user_tweets(user_id, since_id=latest_tweet_id))
     tweet_file_path = Path(DAILY_TWEETS_PATH.format(timestamp))
     if not tweet_file_path.exists():
         statuses.to_csv(

@@ -61,6 +61,7 @@ def get_friends_ids(handle: str, count: int = 5000) -> List[int]:
     Generates list of ids people that twitter user wih particular handle follows.
     """
 
+    api = authenticate()
     friends = _get_data_points(partial(api.friends_ids, handle), count=count)
 
     return friends
