@@ -1,0 +1,6 @@
+# This file defines the dagster workspace.
+load_from:
+  - python_file:
+      relative_path: lena_tweets/repo.py
+      location_name: lena_tweets
+
