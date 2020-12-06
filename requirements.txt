@@ -1,0 +1,10 @@
+dagit<1.0.0
+dagster<1.0.0
+dagster-cron<1.0.0
+tweepy==3.9.0
+pandas==1.1.4
+jupyter==1.0.0
+pytest==6.1.2
+nest_asyncio
+pylint==2.6.0
+rope==0.18.0
