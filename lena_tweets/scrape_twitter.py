@@ -20,7 +20,8 @@ def _get_data_points(func, count: int = 200):
     while cursor != 0:
         new_data, (_, cursor) = func(count=count, cursor=cursor)
         datapoints.extend(new_data)
-
+        
+ 
     return datapoints
 
 
@@ -31,7 +32,15 @@ def get_friends(screen_name: str, count: int = 200) -> Tuple[User, List[User]]:
     api = authenticate()
     user = api.get_user(screen_name)
 
-    friends = _get_data_points(user.friends, count=count)
+    try:
+        friends = _get_data_points(user.friends, count=count)
+    except tweepy.error.TweepError as exc:
+        if "Not authorized" in str(exc):
+            print(exc)
+            print(f"WARNING - NO PERMISSIONS TO VIEW friends for {screen_name}")
+            friends = []
+        else:
+            raise
 
     return user, friends
 
@@ -75,7 +84,7 @@ def get_user_tweets(user_id: int, since_id: Optional[int] = None, count: int = 2
     try:
         tweets = api.user_timeline(user_id=user_id, since_id=since_id, count=count)
     except tweepy.error.TweepError as exc:
-        if "Not authorized" in exc:
+        if "Not authorized" in str(exc):
             print(exc)
             print(f"WARNING - NO PERMISSIONS TO VIEW user_timeline for {user_id}")
             tweets = []
