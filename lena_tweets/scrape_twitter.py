@@ -72,7 +72,15 @@ def get_user_tweets(user_id: int, since_id: Optional[int] = None, count: int = 2
     Returns tweets of a user
     """
     api = authenticate()
-    tweets = api.user_timeline(user_id=user_id, since_id=since_id, count=count)
+    try:
+        tweets = api.user_timeline(user_id=user_id, since_id=since_id, count=count)
+    except tweepy.error.TweepError as exc:
+        if "Not authorized" in exc:
+            print(exc)
+            print(f"WARNING - NO PERMISSIONS TO VIEW user_timeline for {user_id}")
+            tweets = []
+        else:
+            raise
     
     return tweets
 
