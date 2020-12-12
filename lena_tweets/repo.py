@@ -27,11 +27,8 @@ def queue_people():
 def my_minute_schedule(date):
     return {
         "solids": {
-            "collect_user_information": {
+            "get_friends_of_user": {
                 "config": {"timestamp": date.strftime(TIMESTAMP_FORMAT)},
-            },
-            "collect_tweets_they_see": {
-                "config": {"timestamp": date.strftime(TIMESTAMP_FORMAT)}
             },
         }
     }
