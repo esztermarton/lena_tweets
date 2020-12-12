@@ -71,6 +71,7 @@ def get_ids_collect_info(context) -> List[int]:
     participants = []
     for screen_name in screen_names:
         user, friends = get_friends(screen_name)
+        context.log("Got id and friends of user {}" % screen_name)
         participants.append(str(user.id))
         all_users.append(user)
         all_users.extend(friends)
@@ -102,6 +103,8 @@ def collect_tweets_history_of_user(context, user_ids: List[int]):
     statuses = []
     for user_id in user_ids:
         new_statuses = _convert_tweets_to_dataframe(user_id, get_all_most_recent_tweets(user_id))
+
+        context.log("Looking at user_id {}, {} tweets ever" % (user_id, len(new_statuses)))
         statuses.append(new_statuses)
 
         # No lock file, since this will be done pre-study.
