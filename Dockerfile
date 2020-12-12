@@ -1,11 +1,11 @@
 FROM bitnami/python:3.8
 
-COPY ./*.txt /app
+COPY ./*.txt /app/
 
 RUN apt-get update && apt-get install -yqq cron \
     && pip install -r requirements.txt
 
-COPY . /app
+COPY . /app/
 RUN chmod +x /app/entrypoint.sh && mkdir -p /app/data
 
 ENV PYTHONPATH=$PYTHONPATH:/app

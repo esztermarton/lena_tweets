@@ -45,7 +45,7 @@ def collect_user_information(context, individuals_to_monitor: List[str]):
 
     df = pd.concat(
         [
-            _convert_friends_to_dataframe(*get_friends(screen_name))
+            _convert_friends_to_dataframe(get_friends(screen_name)[1])
             for screen_name in individuals_to_monitor
         ]
     )
@@ -173,9 +173,9 @@ def read_in_user(_) -> int:
                 f.writelines(rest)
             raise ValueError("No more participants to examine today")
 
-    # # Write rest back to file
-    # with open(today_file, "w") as f:
-    #     f.writelines(rest)
+    # Write rest back to file
+    with open(today_file, "w") as f:
+        f.writelines(rest)
 
     # Write current screen name to tomorrow's file
     with open(tomorrow_file, "a") as f:
@@ -233,6 +233,14 @@ def lookup_users_daily(context, users: List[int]):
 
 
 @solid(config_schema={"timestamp": str})
+def collect_tweets_of_users(context):
+    """
+    Collects tweets the user tweets
+    """
+    for _ in range(70):
+        collect_tweets_of_user(context)
+
+
 def collect_tweets_of_user(context):
     """
     Collects tweets the user tweets

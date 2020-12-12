@@ -7,7 +7,7 @@ from lena_tweets.solids import (
     get_friends_of_user,
     get_ids_collect_info,
     lookup_users_daily, 
-    collect_tweets_of_user,
+    collect_tweets_of_users,
     collect_tweets_history_of_user,
 )
 
@@ -30,4 +30,4 @@ def daily_user_scrape():
 
 @pipeline
 def daily_tweet_scrape():
-    collect_tweets_of_user()
+    collect_tweets_of_users()
