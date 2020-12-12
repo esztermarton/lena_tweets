@@ -31,31 +31,6 @@ lock_file_a = Path(__file__).parent / ".lockfile_a"
 lock_file_b = Path(__file__).parent / ".lockfile_b"
 
 
-@solid(config_schema={"timestamp": str})
-def collect_user_information(context, individuals_to_monitor: List[str]):
-    """
-    Collects information about users
-    """
-
-    timestamp = context.solid_config.get(
-        "timestamp", datetime.now().strftime(TIMESTAMP_FORMAT)
-    )
-
-    context.log.info(f"{individuals_to_monitor}")
-
-    df = pd.concat(
-        [
-            _convert_friends_to_dataframe(get_friends(screen_name)[1])
-            for screen_name in individuals_to_monitor
-        ]
-    )
-
-    df.to_csv(f"daily_user_scrape_{timestamp}.csv", index=False)
-    context.log.info(f"These are the columns of dataframe with type {type(df)}")
-    context.log.info(f"{df.to_dict(orient='records')[0].keys()}")
-    return list(df["friend_screen_name"].unique())
-
-
 @solid
 def get_ids_collect_info(context) -> List[int]:
     """
@@ -67,82 +42,34 @@ def get_ids_collect_info(context) -> List[int]:
     with open(STUDY_INPUT_START_PART) as f:
         screen_names = [f.strip() for f in f.readlines() if f.strip()]
 
-    all_users = []
-    participants = []
+    if Path(STUDY_START_PATH).exists():
+        screen_names_already_seen = set(pd.read_csv(STUDY_START_PATH)["screen_name"])
+        header = False
+    else:
+        screen_names_already_seen = set()
+        header = True
+
     for screen_name in screen_names:
+        if screen_name in screen_names_already_seen:
+            continue
         user, friends = get_friends(screen_name)
         context.log.info(f"Got id and friends of user {screen_name}")
         participants.append(str(user.id))
-        all_users.append(user)
-        all_users.extend(friends)
+        new_users = [user] + friends
 
-    df = _convert_friends_to_dataframe(all_users)
-    df.to_csv(STUDY_START_PATH.format(timestamp), index=False)
-    tracking_df = df[["user_id"]]
-    tracking_df["latest_tweet_id"] = None
-    tracking_df["tweets_last_retrieved"] = None
-    tracking_df.to_csv(USER_TRACKER_PATH, index=False)
+        df = _convert_friends_to_dataframe(new_users)
+        df.to_csv(STUDY_START_PATH.format(timestamp), index=False, mode="a", header=header)
+    
+        tracking_df = df[["user_id"]]
+        tracking_df["latest_tweet_id"] = None
+        tracking_df["tweets_last_retrieved"] = None
+        tracking_df.to_csv(USER_TRACKER_PATH, index=False, mode="a", header=header)
 
-    first_today_file = PARTICIPANTS_QUEUE.format(timestamp)
+        header = False
 
-    context.log.debug(str(participants))
-
-    with open(first_today_file, "w") as f:
-        f.writelines(participants)
-
-    return [int(p) for p in participants]
-
-
-@solid
-def collect_tweets_history_of_user(context, user_ids: List[int]):
-    """
-    Collects tweets the user tweets
-    """
-    timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
-
-    statuses = []
-    for user_id in user_ids:
-        new_statuses = _convert_tweets_to_dataframe(user_id, get_all_most_recent_tweets(user_id))
-
-        context.log.info(f"Looking at user_id {user_id}, {len(new_statuses)} tweets ever")
-        statuses.append(new_statuses)
-
-        # No lock file, since this will be done pre-study.
-        df = pd.read_csv(USER_TRACKER_PATH).set_index("user_id")
-        df.at[user_id, "tweets_last_retrieved"] = datetime.now()
-        if len(new_statuses):
-            df.at[user_id, "latest_tweet_id"] = int(new_statuses.iloc[0]["id"])
-        df.to_csv(USER_TRACKER_PATH)
-
-        context.log.info(f"Updated user_id {user_id}, {len(new_statuses)} new tweets")
-
-
-    statuses = pd.concat(statuses)
-
-    tweet_file_path = Path(TWEET_HISTORY)
-    statuses.to_csv(
-        tweet_file_path, index=False
-    )
-
-
-@solid(config_schema={"timestamp": str})
-def collect_tweets_they_see(context, tweets_to_gather: List[str]):
-    """
-    Collects tweets that each user sees
-    """
-    timestamp = context.solid_config.get(
-        "timestamp", datetime.now().strftime(TIMESTAMP_FORMAT)
-    )
-
-    context.log.info(f"{tweets_to_gather}")
-    pd.concat(
-        [
-            _convert_tweets_to_dataframe(screen_name, get_user_tweets(screen_name))
-            for screen_name in tweets_to_gather
-        ]
-    ).to_csv(f"daily_tweet_scrape_{timestamp}.csv", index=False)
-
-    context.log.info("Found some codes")
+        first_today_file = PARTICIPANTS_QUEUE.format(timestamp)
+        with open(first_today_file, "w") as f:
+            f.write(str(user.id) + "\n")
 
 
 @solid
@@ -200,8 +127,10 @@ def get_friends_of_user(context, next_user_id: int) -> List[int]:
     )
     friends_ids = get_friends_ids(next_user_id)
 
+    header = not Path(DAILY_FRIENDS_CHECK_PATH.format(timestamp)).exists()
+
     pd.DataFrame({"user_id": next_user_id, "friends_id": friends_ids}).to_csv(
-        DAILY_FRIENDS_CHECK_PATH.format(timestamp), mode="a", header=False, index=False
+        DAILY_FRIENDS_CHECK_PATH.format(timestamp), mode="a", header=header, index=False
     )
     return friends_ids
 
@@ -236,15 +165,15 @@ def lookup_users_daily(context, users: List[int]):
 
 
 @solid(config_schema={"timestamp": str})
-def collect_tweets_of_users(context):
+def collect_tweets_of_users(context, all_tweets=False):
     """
     Collects tweets the user tweets
     """
     for _ in range(70):
-        collect_tweets_of_user(context)
+        collect_tweets_of_user(context, all_tweets=all_tweets)
 
 
-def collect_tweets_of_user(context):
+def collect_tweets_of_user(context, all_tweets=False):
     """
     Collects tweets the user tweets
     """
@@ -261,16 +190,16 @@ def collect_tweets_of_user(context):
         user_id = df.sort_values("tweets_last_retrieved").iloc[0].name
         latest_tweet_id = int(df.sort_values("tweets_last_retrieved").iloc[0]["latest_tweet_id"])
 
-    statuses = _convert_tweets_to_dataframe(user_id, get_user_tweets(user_id, since_id=latest_tweet_id))
-    tweet_file_path = Path(DAILY_TWEETS_PATH.format(timestamp))
-    if not tweet_file_path.exists():
-        statuses.to_csv(
-        tweet_file_path, index=False
-    )
+    if all_tweets:
+        statuses = _convert_tweets_to_dataframe(user_id, get_all_most_recent_tweets(user_id))
+        tweet_file_path = Path(TWEET_HISTORY)
+
     else:
-        statuses.to_csv(
-        tweet_file_path, mode="a", header=False, index=False
-    )
+        statuses = _convert_tweets_to_dataframe(user_id, get_user_tweets(user_id, since_id=latest_tweet_id))
+        tweet_file_path = Path(DAILY_TWEETS_PATH.format(timestamp))
+
+    header = not tweet_file_path.exists()
+    statuses.to_csv(tweet_file_path, mode="a", header=header, index=False)
 
     while lock_file_a.exists():
         time.sleep(0.01)

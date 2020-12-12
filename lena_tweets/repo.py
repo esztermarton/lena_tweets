@@ -2,13 +2,14 @@ from datetime import datetime
 
 from dagster import repository
 
-from lena_tweets.config import TIMESTAMP_FORMAT, PARTICIPANTS_QUEUE
+from lena_tweets.config import TIMESTAMP_FORMAT, PARTICIPANTS_QUEUE, USER_TRACKER_PATH
 from lena_tweets.partition_schedule import minute_schedule
 from lena_tweets.pipelines import (
     daily_twitter_scrape,
     daily_user_scrape,
     daily_tweet_scrape,
     kick_off_study,
+    tweet_history,
 )
 
 
@@ -23,6 +24,16 @@ def queue_people():
     return bool(user_ids)
 
 
+def outstanding_tweet_history():
+    if not Path(USER_TRACKER_PATH).exists():
+        return False
+
+    df = pd.read_csv(USER_TRACKER_PATH)
+    df_new = df[df["tweets_last_retrieved"].isna()]
+
+    return bool(len(df_new))
+
+
 @minute_schedule(pipeline_name="daily_user_scrape", start_date=datetime(2020, 12, 12), should_execute=queue_people)
 def my_minute_schedule(date):
     return {
@@ -35,6 +46,17 @@ def my_minute_schedule(date):
 
 @minute_schedule(pipeline_name="daily_tweet_scrape", start_date=datetime(2020, 12, 12))
 def my_minute_schedule_tweet(date):
+    return {
+        "solids": {
+            "collect_tweets_of_users": {
+                "config": {"timestamp": date.strftime(TIMESTAMP_FORMAT)},
+            },
+        }
+    }
+
+
+@minute_schedule(pipeline_name="tweet_history", start_date=datetime(2020, 12, 12), should_execute=outstanding_tweet_history)
+def my_minute_schedule_tweet_history(date):
     return {
         "solids": {
             "collect_tweets_of_users": {

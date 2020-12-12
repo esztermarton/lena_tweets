@@ -76,11 +76,11 @@ def get_friends_ids(handle: str, count: int = 5000) -> List[int]:
     return friends
 
 
-def get_user_tweets(user_id: int, since_id: Optional[int] = None, count: int = 200) -> List[Status]:
+def get_user_tweets(user_id: int, since_id: Optional[int] = None, count: int = 200, wait=True) -> List[Status]:
     """
     Returns tweets of a user
     """
-    api = authenticate()
+    api = authenticate(wait=wait)
     try:
         tweets = api.user_timeline(user_id=user_id, since_id=since_id, count=count)
     except tweepy.error.TweepError as exc:
