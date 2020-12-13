@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Iterable, List, Dict
 
 import pandas as pd
+import tweepy
 from dagster import solid
 from tweepy import User, Status
 
@@ -55,7 +56,11 @@ def get_ids_collect_info(context) -> List[int]:
     for screen_name in screen_names:
         if screen_name in screen_names_already_seen:
             continue
-        user, friends = get_friends(screen_name)
+        try:
+            user, friends = get_friends(screen_name)
+        except tweepy.error.TweepError as exc:
+            context.log.error(str(exc))
+            continue
         context.log.info(f"Got id and friends of user {screen_name}")
         users = [user] + friends
         new_users = []

@@ -16,7 +16,7 @@ def retry_decorator(total_retry_number=10):
                 try_number += 1
                 if try_number < total_retry_number:
                     print(f"TweepyError. Will retry {total_retry_number - try_number} more times.")
-                    wrapper(*args, try_number=try_number, **kwargs)
+                    return wrapper(*args, try_number=try_number, **kwargs)
                 else:
                     print("TweepyError. No more retries left")
                     raise
