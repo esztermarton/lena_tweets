@@ -38,15 +38,18 @@ def get_ids_collect_info(context) -> List[int]:
     """
 
     timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
+    study_start_path = STUDY_START_PATH.format(timestamp)
 
     with open(STUDY_INPUT_START_PART) as f:
         screen_names = [f.strip() for f in f.readlines() if f.strip()]
 
-    if Path(STUDY_START_PATH).exists():
-        screen_names_already_seen = set(pd.read_csv(STUDY_START_PATH)["screen_name"])
+    if Path(study_start_path).exists():
+        screen_names_already_seen = set(pd.read_csv(study_start_path)["screen_name"])
+        context.log.info(f"{study_start_path} already exists, {len(screen_names_already_seen)} already exist.")
         header = False
     else:
         screen_names_already_seen = set()
+        context.log.info(f"{study_start_path} doesn't exist yet")
         header = True
 
     for screen_name in screen_names:
@@ -57,7 +60,7 @@ def get_ids_collect_info(context) -> List[int]:
         new_users = [user] + friends
 
         df = _convert_friends_to_dataframe(new_users)
-        df.to_csv(STUDY_START_PATH.format(timestamp), index=False, mode="a", header=header)
+        df.to_csv(study_start_path, index=False, mode="a", header=header)
     
         tracking_df = df[["user_id"]]
         tracking_df["latest_tweet_id"] = None
