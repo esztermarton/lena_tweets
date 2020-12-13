@@ -5,7 +5,6 @@ from dagster import repository
 from lena_tweets.config import TIMESTAMP_FORMAT, PARTICIPANTS_QUEUE, USER_TRACKER_PATH
 from lena_tweets.partition_schedule import minute_schedule
 from lena_tweets.pipelines import (
-    daily_twitter_scrape,
     daily_user_scrape,
     daily_tweet_scrape,
     kick_off_study,
@@ -61,6 +60,7 @@ def my_minute_schedule_tweet_history(date):
         "solids": {
             "collect_tweets_of_users": {
                 "config": {"timestamp": date.strftime(TIMESTAMP_FORMAT)},
+                "inputs": {"all_tweets": True},
             },
         }
     }
@@ -68,4 +68,4 @@ def my_minute_schedule_tweet_history(date):
 
 @repository(name="lena_tweets")
 def repo():
-    return [daily_user_scrape, my_minute_schedule, daily_tweet_scrape, my_minute_schedule_tweet, kick_off_study]
+    return [daily_user_scrape, my_minute_schedule, daily_tweet_scrape, my_minute_schedule_tweet, kick_off_study, tweet_history, my_minute_schedule_tweet_history]

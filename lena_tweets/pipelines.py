@@ -16,7 +16,7 @@ def kick_off_study():
 
 @pipeline
 def tweet_history():
-    collect_tweets_of_users(all_tweets=True)
+    collect_tweets_of_users()
 
 
 @pipeline
