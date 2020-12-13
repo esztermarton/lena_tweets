@@ -57,7 +57,12 @@ def get_ids_collect_info(context) -> List[int]:
             continue
         user, friends = get_friends(screen_name)
         context.log.info(f"Got id and friends of user {screen_name}")
-        new_users = [user] + friends
+        users = [user] + friends
+        new_users = []
+        for u in users:
+            if not u.screen_name in screen_names_already_seen:
+                new_users.append(u)
+                screen_names_already_seen.add(u.screen_name)
 
         df = _convert_friends_to_dataframe(new_users)
         df.to_csv(study_start_path, index=False, mode="a", header=header)
