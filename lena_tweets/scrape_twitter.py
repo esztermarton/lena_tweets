@@ -7,6 +7,24 @@ from tweepy import User, Status
 from lena_tweets.auth import authenticate
 
 
+def retry_decorator(total_retry_number=10):
+    def fix_retry_decorator(twitter_func):
+        def wrapper(*args, try_number=0, **kwargs):
+            try:
+                return twitter_func(*args, **kwargs)
+            except tweepy.error.TweepError as exc:
+                try_number += 1
+                if try_number < total_retry_number:
+                    print(f"TweepyError. Will retry {total_retry_number - try_number} more times.")
+                    wrapper(*args, try_number=try_number, **kwargs)
+                else:
+                    print("TweepyError. No more retries left")
+                    raise
+        return wrapper
+    return fix_retry_decorator
+
+
+@retry_decorator()
 def _get_data_points(func, count: int = 200):
     """
     Gets paginated endpoint where the return has format
@@ -56,6 +74,7 @@ def lookup_users(ids: List[Union[int, str]], screen_name: bool = False) -> List[
     return users
 
 
+@retry_decorator()
 def lookup_100_friends(
     ids: List[Union[int, str]], screen_name: bool = False
 ) -> List[User]:
@@ -65,6 +84,7 @@ def lookup_100_friends(
     return api.lookup_users(user_ids=ids)
 
 
+@retry_decorator()
 def get_friends_ids(handle: str, count: int = 5000) -> List[int]:
     """
     Generates list of ids people that twitter user wih particular handle follows.
@@ -76,6 +96,7 @@ def get_friends_ids(handle: str, count: int = 5000) -> List[int]:
     return friends
 
 
+@retry_decorator()
 def get_user_tweets(user_id: int, since_id: Optional[int] = None, count: int = 200, wait=True) -> List[Status]:
     """
     Returns tweets of a user
@@ -94,11 +115,25 @@ def get_user_tweets(user_id: int, since_id: Optional[int] = None, count: int = 2
     return tweets
 
 
+@retry_decorator()
+def _get_tweets(user_id: int, latest_tweet_id: int, count=200) -> List[Status]:
+    api = authenticate()
+
+    latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=count)
+    timeout = 0
+    while not latest_tweets:
+        if timeout > 10:
+            raise RuntimeError
+        timeout += 1
+        latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=count)
+        
+    return latest_tweets
+
+
 def get_all_most_recent_tweets(user_id: int) -> List[Status]:
     """
     Returns all 3200 retreivable tweets of a user.
     """
-    api = authenticate()
 
     tweets = []
     latest_tweet_id = None
@@ -106,21 +141,9 @@ def get_all_most_recent_tweets(user_id: int) -> List[Status]:
     latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=200)
     tweets.extend(latest_tweets)
     
-    counter = 1
-
     while latest_tweets[-1].id != latest_tweet_id:
-        latest_tweet_id = latest_tweets[-1].id
-
-        latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=200)
-        timeout = 0
-        while not latest_tweets:
-            if timeout > 10:
-                raise RuntimeError
-            timeout += 1
-            latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=200)
-            
-        counter += 1
-
+        latest_tweets = _get_tweets(user_id, latest_tweets[-1].id, count=200)
+        
         tweets.extend(latest_tweets[1:])
 
     return tweets

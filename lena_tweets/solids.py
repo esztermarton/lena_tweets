@@ -54,7 +54,6 @@ def get_ids_collect_info(context) -> List[int]:
             continue
         user, friends = get_friends(screen_name)
         context.log.info(f"Got id and friends of user {screen_name}")
-        participants.append(str(user.id))
         new_users = [user] + friends
 
         df = _convert_friends_to_dataframe(new_users)
