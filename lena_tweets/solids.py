@@ -177,7 +177,7 @@ def lookup_users_daily(context, users: List[int]):
 
 
 @solid(config_schema={"timestamp": str})
-def collect_tweets_of_users(context, all_tweets=False):
+def collect_tweets_of_users(context, all_tweets: int = False):
     """
     Collects tweets the user tweets
     """
@@ -185,7 +185,7 @@ def collect_tweets_of_users(context, all_tweets=False):
         collect_tweets_of_user(context, all_tweets=all_tweets)
 
 
-def collect_tweets_of_user(context, all_tweets=False):
+def collect_tweets_of_user(context, all_tweets: int = False):
     """
     Collects tweets the user tweets
     """

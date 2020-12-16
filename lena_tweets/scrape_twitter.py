@@ -138,6 +138,7 @@ def get_all_most_recent_tweets(user_id: int) -> List[Status]:
     tweets = []
     latest_tweet_id = None
     
+    api = authenticate()
     latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=200)
     tweets.extend(latest_tweets)
     
