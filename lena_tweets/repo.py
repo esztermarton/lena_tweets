@@ -1,5 +1,7 @@
 from datetime import datetime
+from pathlib import Path
 
+import pandas as pd
 from dagster import repository
 
 from lena_tweets.config import TIMESTAMP_FORMAT, PARTICIPANTS_QUEUE, USER_TRACKER_PATH
@@ -12,7 +14,7 @@ from lena_tweets.pipelines import (
 )
 
 
-def queue_people():
+def queue_people(_):
     """Returns whether people are left in the queue"""
     today = datetime.now().strftime(TIMESTAMP_FORMAT)
     today_file = PARTICIPANTS_QUEUE.format(today)
@@ -23,7 +25,7 @@ def queue_people():
     return bool(user_ids)
 
 
-def outstanding_tweet_history():
+def outstanding_tweet_history(_):
     if not Path(USER_TRACKER_PATH).exists():
         return False
 

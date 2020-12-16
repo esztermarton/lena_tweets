@@ -33,7 +33,7 @@ lock_file_b = Path(__file__).parent / ".lockfile_b"
 
 
 @solid
-def get_ids_collect_info(context) -> List[int]:
+def get_ids_collect_info(context):
     """
     Converts a file of screen names to user ids & collects study start info
     """
@@ -45,7 +45,7 @@ def get_ids_collect_info(context) -> List[int]:
         screen_names = [f.strip() for f in f.readlines() if f.strip()]
 
     if Path(study_start_path).exists():
-        screen_names_already_seen = set(pd.read_csv(study_start_path)["screen_name"])
+        screen_names_already_seen = set(pd.read_csv(study_start_path, lineterminator="\n")["screen_name"])
         context.log.info(f"{study_start_path} already exists, {len(screen_names_already_seen)} already exist.")
         header = False
     else:
@@ -57,7 +57,7 @@ def get_ids_collect_info(context) -> List[int]:
         if screen_name in screen_names_already_seen:
             continue
         try:
-            user, friends = get_friends(screen_name)
+            user, friends = get_friends(context.log, screen_name)
         except tweepy.error.TweepError as exc:
             context.log.error(str(exc))
             continue
@@ -80,7 +80,7 @@ def get_ids_collect_info(context) -> List[int]:
         header = False
 
         first_today_file = PARTICIPANTS_QUEUE.format(timestamp)
-        with open(first_today_file, "w") as f:
+        with open(first_today_file, "a") as f:
             f.write(str(user.id) + "\n")
 
 
@@ -137,7 +137,7 @@ def get_friends_of_user(context, next_user_id: int) -> List[int]:
     timestamp = context.solid_config.get(
         "timestamp", datetime.now().strftime(TIMESTAMP_FORMAT)
     )
-    friends_ids = get_friends_ids(next_user_id)
+    friends_ids = get_friends_ids(context.log, next_user_id)
 
     header = not Path(DAILY_FRIENDS_CHECK_PATH.format(timestamp)).exists()
 
@@ -169,7 +169,7 @@ def lookup_users_daily(context, users: List[int]):
         if not new_user_ids:
             return
 
-        new_users = _convert_users_to_records(lookup_users(new_user_ids))
+        new_users = _convert_users_to_records(lookup_users(context.log, new_user_ids))
         pd.concat([df, pd.DataFrame(new_users)]).to_csv(USER_TRACKER_PATH, index=False)
     finally:
         if lock_file_a.exists():
@@ -177,7 +177,7 @@ def lookup_users_daily(context, users: List[int]):
 
 
 @solid(config_schema={"timestamp": str})
-def collect_tweets_of_users(context, all_tweets: int = False):
+def collect_tweets_of_users(context, all_tweets: bool = False):
     """
     Collects tweets the user tweets
     """
@@ -185,7 +185,7 @@ def collect_tweets_of_users(context, all_tweets: int = False):
         collect_tweets_of_user(context, all_tweets=all_tweets)
 
 
-def collect_tweets_of_user(context, all_tweets: int = False):
+def collect_tweets_of_user(context, all_tweets: bool = False):
     """
     Collects tweets the user tweets
     """
@@ -203,11 +203,11 @@ def collect_tweets_of_user(context, all_tweets: int = False):
         latest_tweet_id = int(df.sort_values("tweets_last_retrieved").iloc[0]["latest_tweet_id"])
 
     if all_tweets:
-        statuses = _convert_tweets_to_dataframe(user_id, get_all_most_recent_tweets(user_id))
+        statuses = _convert_tweets_to_dataframe(user_id, get_all_most_recent_tweets(context.log, user_id))
         tweet_file_path = Path(TWEET_HISTORY)
 
     else:
-        statuses = _convert_tweets_to_dataframe(user_id, get_user_tweets(user_id, since_id=latest_tweet_id))
+        statuses = _convert_tweets_to_dataframe(user_id, get_user_tweets(context.log, user_id, since_id=latest_tweet_id))
         tweet_file_path = Path(DAILY_TWEETS_PATH.format(timestamp))
 
     header = not tweet_file_path.exists()

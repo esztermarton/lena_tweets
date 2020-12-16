@@ -2,7 +2,7 @@ FROM bitnami/python:3.8
 
 COPY ./*.txt /app/
 
-RUN apt-get update && apt-get install -yqq cron \
+RUN apt-get update && apt-get install -yqq cron vim \
     && pip install -r requirements.txt
 
 COPY . /app/
