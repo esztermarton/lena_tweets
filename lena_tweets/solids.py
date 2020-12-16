@@ -213,6 +213,7 @@ def collect_tweets_of_user(context, all_tweets: int = False):
     header = not tweet_file_path.exists()
     statuses.to_csv(tweet_file_path, mode="a", header=header, index=False)
 
+    context.log.info(f"Collected {len(statuses)} tweets for user {user_id}")
     while lock_file_a.exists():
         time.sleep(0.01)
 
