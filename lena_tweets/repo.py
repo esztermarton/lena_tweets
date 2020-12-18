@@ -13,8 +13,9 @@ from lena_tweets.pipelines import (
     tweet_history,
 )
 
+today_day = datetime.now().day
 
-def queue_people(_):
+def queue_people(context):
     """Returns whether people are left in the queue"""
     today = datetime.now().strftime(TIMESTAMP_FORMAT)
     today_file = PARTICIPANTS_QUEUE.format(today)
@@ -22,20 +23,22 @@ def queue_people(_):
         user_ids = f.readlines()
     user_ids = user_ids.strip()
 
+    context.log.info(f"Number of user ids {len(user_ids)}")
     return bool(user_ids)
 
 
-def outstanding_tweet_history(_):
+def outstanding_tweet_history(context):
     if not Path(USER_TRACKER_PATH).exists():
         return False
 
     df = pd.read_csv(USER_TRACKER_PATH)
     df_new = df[df["tweets_last_retrieved"].isna()]
 
+    context.log.info(f"Number of user ids {len(df_new)}")
     return bool(len(df_new))
 
 
-@minute_schedule(pipeline_name="daily_user_scrape", start_date=datetime(2020, 12, 12), should_execute=queue_people)
+@minute_schedule(pipeline_name="daily_user_scrape", start_date=datetime(2020, 12, today_day), should_execute=queue_people)
 def my_minute_schedule(date):
     return {
         "solids": {
@@ -45,7 +48,7 @@ def my_minute_schedule(date):
         }
     }
 
-@minute_schedule(pipeline_name="daily_tweet_scrape", start_date=datetime(2020, 12, 12))
+@minute_schedule(pipeline_name="daily_tweet_scrape", start_date=datetime(2020, 12, today_day))
 def my_minute_schedule_tweet(date):
     return {
         "solids": {
@@ -56,7 +59,7 @@ def my_minute_schedule_tweet(date):
     }
 
 
-@minute_schedule(pipeline_name="tweet_history", start_date=datetime(2020, 12, 12), should_execute=outstanding_tweet_history)
+@minute_schedule(pipeline_name="tweet_history", start_date=datetime(2020, 12, today_day), should_execute=outstanding_tweet_history)
 def my_minute_schedule_tweet_history(date):
     return {
         "solids": {
