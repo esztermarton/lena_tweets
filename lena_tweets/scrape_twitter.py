@@ -73,7 +73,7 @@ def lookup_users(log, ids: List[Union[int, str]], screen_name: bool = False) -> 
     for i in range(len(ids) // 100 + 1):
         intex_lower, index_upper = i * 100, (i + 1) * 100
         users.extend(
-            lookup_100_friends(ids[intex_lower:index_upper], screen_name=screen_name)
+            lookup_100_friends(log, ids[intex_lower:index_upper], screen_name=screen_name)
         )
         log.info(f"Extended with {index_upper - intex_lower} users")
 
