@@ -184,8 +184,9 @@ def collect_tweets_of_users(context, all_tweets: bool = False):
     initial_timestamp = datetime.now()
     for _ in range(70):
         collect_tweets_of_user(context, all_tweets=all_tweets)
-        if initial_timestamp - datetime.now() > timedelta(minutes=2):
+        if initial_timestamp - datetime.now() > timedelta(minutes=1):
             context.log.info("Have been running for over 2 minutes, returning")
+            return
 
 
 def collect_tweets_of_user(context, all_tweets: bool = False):
