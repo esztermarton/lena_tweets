@@ -15,26 +15,23 @@ from lena_tweets.pipelines import (
 
 today_day = datetime.now().day
 
-def queue_people(context):
+def queue_people(_):
     """Returns whether people are left in the queue"""
     today = datetime.now().strftime(TIMESTAMP_FORMAT)
     today_file = PARTICIPANTS_QUEUE.format(today)
     with open(today_file, "r") as f:
         user_ids = f.readlines()
-    user_ids = user_ids.strip()
 
-    context.log.info(f"Number of user ids {len(user_ids)}")
     return bool(user_ids)
 
 
-def outstanding_tweet_history(context):
+def outstanding_tweet_history(_):
     if not Path(USER_TRACKER_PATH).exists():
         return False
 
     df = pd.read_csv(USER_TRACKER_PATH)
     df_new = df[df["tweets_last_retrieved"].isna()]
 
-    context.log.info(f"Number of user ids {len(df_new)}")
     return bool(len(df_new))
 
 
