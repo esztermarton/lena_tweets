@@ -121,7 +121,7 @@ def read_in_user(_) -> int:
 
     # Write current screen name to tomorrow's file
     with open(tomorrow_file, "a") as f:
-        f.write(f"\n{next_user_id}")
+        f.write(f"\n{next_user_id.strip()}")
 
     return int(next_user_id.strip())
 
