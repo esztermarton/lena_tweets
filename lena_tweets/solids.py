@@ -133,6 +133,7 @@ def get_friends_of_user(context, next_user_id: int) -> List[int]:
 
     Returns the list of integers for friends' ids.
     """
+    next_user_id = int(next_user_id)
 
     timestamp = context.solid_config.get(
         "timestamp", datetime.now().strftime(TIMESTAMP_FORMAT)
@@ -165,7 +166,7 @@ def lookup_users_daily(context, users: List[int]):
         df = pd.read_csv(USER_TRACKER_PATH)
         lookup = set(df["user_id"].unique())
 
-        new_user_ids = [u for u in users if u not in lookup]
+        new_user_ids = [int(u) for u in users if u not in lookup]
         if not new_user_ids:
             return
 
@@ -200,10 +201,10 @@ def collect_tweets_of_user(context, all_tweets: bool = False):
     df = pd.read_csv(USER_TRACKER_PATH).set_index("user_id")
     df_new = df[df["tweets_last_retrieved"].isna()]
     if len(df_new):
-        user_id = df_new.iloc[0].name
+        user_id = int(df_new.iloc[0].name)
         latest_tweet_id = None
     else:
-        user_id = df.sort_values("tweets_last_retrieved").iloc[0].name
+        user_id = int(df.sort_values("tweets_last_retrieved").iloc[0].name)
         latest_tweet_id = int(df.sort_values("tweets_last_retrieved").iloc[0]["latest_tweet_id"])
 
     if all_tweets:
@@ -240,7 +241,7 @@ def collect_tweets_of_user(context, all_tweets: bool = False):
 def _convert_users_to_records(users: List[User]):
     return [
         {
-            "user_id": user.id,
+            "user_id": int(user.id),
             # "screen_name": user.screen_name,
             # "name": user.name,
             # "bio": user.description,
@@ -266,5 +267,5 @@ def _convert_friends_to_dataframe(users: List[User]):
 
 def _convert_tweets_to_dataframe(user_id: int, tweets: List[Status]):
     return pd.DataFrame(
-        [{"user_id": user_id, "id": tweet.id, "text": tweet.text, "created_at": tweet.created_at} for tweet in tweets]
+        [{"user_id": int(user_id), "id": int(tweet.id), "text": tweet.text, "created_at": tweet.created_at} for tweet in tweets]
     )
