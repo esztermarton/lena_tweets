@@ -132,6 +132,7 @@ def _get_tweets(log, user_id: int, latest_tweet_id: int, count=200) -> List[Stat
     latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=count)
     timeout = 0
     while not latest_tweets:
+        log.info("Latest tweets is empty")
         if timeout > 10:
             raise RuntimeError
         timeout += 1
@@ -154,6 +155,14 @@ def get_all_most_recent_tweets(log, user_id: int) -> List[Status]:
     api = authenticate()
     try:
         latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=200)
+        timeout = 0
+        while not latest_tweets:
+            log.info("Latest tweets is empty")
+            if timeout > 2:
+                return []
+            timeout += 1
+            latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=200)
+  
     except tweepy.error.TweepError as exc:
         if "Not authorized" in str(exc):
             log.warning(str(exc))
@@ -161,7 +170,7 @@ def get_all_most_recent_tweets(log, user_id: int) -> List[Status]:
             return []
         else:
             raise
-    
+
     tweets.extend(latest_tweets)
     
     while latest_tweets[-1].id != latest_tweet_id:
