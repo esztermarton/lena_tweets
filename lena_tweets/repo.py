@@ -4,7 +4,8 @@ from pathlib import Path
 import pandas as pd
 from dagster import repository
 
-from lena_tweets.config import TIMESTAMP_FORMAT, PARTICIPANTS_QUEUE, USER_TRACKER_PATH
+from lena_tweets.config import TIMESTAMP_FORMAT
+from lena_tweets.database import connection_manager, Tracker
 from lena_tweets.partition_schedule import minute_schedule
 from lena_tweets.pipelines import (
     daily_user_scrape,
@@ -15,27 +16,31 @@ from lena_tweets.pipelines import (
 
 today_day = datetime.now().day
 
+
+@connection_manager()
 def queue_people(_):
-    """Returns whether people are left in the queue"""
-    today = datetime.now().strftime(TIMESTAMP_FORMAT)
-    today_file = PARTICIPANTS_QUEUE.format(today)
-    with open(today_file, "r") as f:
-        user_ids = f.readlines()
+    """Returns whether people are left that haven't yet been checked"""
+    today = datetime().now()
+    today_date = datetime(today.year, today.month, today.date)
+    not_checked_today = Tracker.select().where(
+        (
+            (Tracker.friends_last_retrieved.isnull())
+            | (Tracker.friends_last_retrieved < today_date)
+        )
+        & (Tracker.participant == True)
+    )
+    return not_checked_today.count() > 0
 
-    return bool(user_ids)
 
-
+@connection_manager()
 def outstanding_tweet_history(_):
-    if not Path(USER_TRACKER_PATH).exists():
-        return False
+    return bool(Tracker.select().where(Tracker.latest_tweet_id.isnull(False)).count())
 
-    df = pd.read_csv(USER_TRACKER_PATH)
-    df_new = df[df["tweets_last_retrieved"].isna()]
-
-    return bool(len(df_new))
-
-
-@minute_schedule(pipeline_name="daily_user_scrape", start_date=datetime(2020, 12, today_day), should_execute=queue_people)
+@minute_schedule(
+    pipeline_name="daily_user_scrape",
+    start_date=datetime(2020, 12, today_day),
+    should_execute=queue_people,
+)
 def my_minute_schedule(date):
     return {
         "solids": {
@@ -45,7 +50,10 @@ def my_minute_schedule(date):
         }
     }
 
-@minute_schedule(pipeline_name="daily_tweet_scrape", start_date=datetime(2020, 12, today_day))
+
+@minute_schedule(
+    pipeline_name="daily_tweet_scrape", start_date=datetime(2020, 12, today_day)
+)
 def my_minute_schedule_tweet(date):
     return {
         "solids": {
@@ -56,7 +64,11 @@ def my_minute_schedule_tweet(date):
     }
 
 
-@minute_schedule(pipeline_name="tweet_history", start_date=datetime(2020, 12, today_day), should_execute=outstanding_tweet_history)
+@minute_schedule(
+    pipeline_name="tweet_history",
+    start_date=datetime(2020, 12, today_day),
+    should_execute=outstanding_tweet_history,
+)
 def my_minute_schedule_tweet_history(date):
     return {
         "solids": {
@@ -70,4 +82,12 @@ def my_minute_schedule_tweet_history(date):
 
 @repository(name="lena_tweets")
 def repo():
-    return [daily_user_scrape, my_minute_schedule, daily_tweet_scrape, my_minute_schedule_tweet, kick_off_study, tweet_history, my_minute_schedule_tweet_history]
+    return [
+        daily_user_scrape,
+        my_minute_schedule,
+        daily_tweet_scrape,
+        my_minute_schedule_tweet,
+        kick_off_study,
+        tweet_history,
+        my_minute_schedule_tweet_history,
+    ]

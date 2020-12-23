@@ -65,7 +65,9 @@ def minute_schedule(
     check.opt_nullable_list_param(solid_selection, "solid_selection", of_type=str)
     mode = "default"
     check.opt_callable_param(should_execute, "should_execute")
-    check.opt_dict_param(environment_vars, "environment_vars", key_type=str, value_type=str)
+    check.opt_dict_param(
+        environment_vars, "environment_vars", key_type=str, value_type=str
+    )
     check.str_param(pipeline_name, "pipeline_name")
     check.opt_str_param(execution_timezone, "execution_timezone")
 
@@ -82,9 +84,7 @@ def minute_schedule(
         else DEFAULT_HOURLY_FORMAT_WITHOUT_TIMEZONE
     )
 
-    execution_time_to_partition_fn = lambda d: pendulum.instance(d).subtract(
-        minutes=1
-    )
+    execution_time_to_partition_fn = lambda d: pendulum.instance(d).subtract(minutes=1)
 
     partition_fn = schedule_partition_range(
         start_date,
@@ -102,7 +102,9 @@ def minute_schedule(
 
         tags_fn_for_partition_value = lambda partition: {}
         if tags_fn_for_date:
-            tags_fn_for_partition_value = lambda partition: tags_fn_for_date(partition.value)
+            tags_fn_for_partition_value = lambda partition: tags_fn_for_date(
+                partition.value
+            )
 
         partition_set = PartitionSetDefinition(
             name="{}_partitions".format(schedule_name),
@@ -128,8 +130,6 @@ def minute_schedule(
     return inner
 
 
-
-
 def schedule_partition_range(
     start, end, cron_schedule, fmt, timezone, execution_time_to_partition_fn,
 ):
@@ -140,7 +140,9 @@ def schedule_partition_range(
     check.str_param(cron_schedule, "cron_schedule")
     check.str_param(fmt, "fmt")
     check.opt_str_param(timezone, "timezone")
-    check.callable_param(execution_time_to_partition_fn, "execution_time_to_partition_fn")
+    check.callable_param(
+        execution_time_to_partition_fn, "execution_time_to_partition_fn"
+    )
 
     if end and start > end:
         raise DagsterInvariantViolationError(
@@ -167,7 +169,9 @@ def schedule_partition_range(
         end_timestamp = _end.timestamp()
 
         partitions = []
-        for next_time in schedule_execution_time_iterator(_start.timestamp(), cron_schedule, tz):
+        for next_time in schedule_execution_time_iterator(
+            _start.timestamp(), cron_schedule, tz
+        ):
 
             partition_time = execution_time_to_partition_fn(next_time)
 
@@ -177,18 +181,24 @@ def schedule_partition_range(
             if partition_time.timestamp() < _start.timestamp():
                 continue
 
-            partitions.append(Partition(value=partition_time, name=partition_time.strftime(fmt)))
+            partitions.append(
+                Partition(value=partition_time, name=partition_time.strftime(fmt))
+            )
 
         return partitions[:-1]
 
     return get_schedule_range_partitions
 
 
-def schedule_execution_time_iterator(start_timestamp, cron_schedule, execution_timezone):
+def schedule_execution_time_iterator(
+    start_timestamp, cron_schedule, execution_timezone
+):
     check.float_param(start_timestamp, "start_timestamp")
     check.str_param(cron_schedule, "cron_schedule")
     check.opt_str_param(execution_timezone, "execution_timezone")
-    timezone_str = execution_timezone if execution_timezone else pendulum.now().timezone.name
+    timezone_str = (
+        execution_timezone if execution_timezone else pendulum.now().timezone.name
+    )
 
     start_datetime = pendulum.from_timestamp(start_timestamp, tz=timezone_str)
 
@@ -197,7 +207,9 @@ def schedule_execution_time_iterator(start_timestamp, cron_schedule, execution_t
     # Go back one iteration so that the next iteration is the first time that is >= start_datetime
     # and matches the cron schedule
     date_iter.get_prev(datetime.datetime)
-    next_date = pendulum.instance(date_iter.get_next(datetime.datetime)).in_tz(timezone_str)
+    next_date = pendulum.instance(date_iter.get_next(datetime.datetime)).in_tz(
+        timezone_str
+    )
 
     yield next_date
 
@@ -215,7 +227,10 @@ def schedule_execution_time_iterator(start_timestamp, cron_schedule, execution_t
         delta_fn = lambda d, num: d.add(months=num)
         should_hour_change = False
     elif (
-        all(is_numeric[0:2]) and is_numeric[4] and cron_parts[2] == "*" and cron_parts[3] == "*"
+        all(is_numeric[0:2])
+        and is_numeric[4]
+        and cron_parts[2] == "*"
+        and cron_parts[3] == "*"
     ):  # weekly
         delta_fn = lambda d, num: d.add(weeks=num)
         should_hour_change = False
@@ -249,6 +264,8 @@ def schedule_execution_time_iterator(start_timestamp, cron_schedule, execution_t
 
             next_date = next_date_cand
         else:
-            next_date = pendulum.instance(date_iter.get_next(datetime.datetime)).in_tz(timezone_str)
+            next_date = pendulum.instance(date_iter.get_next(datetime.datetime)).in_tz(
+                timezone_str
+            )
 
         yield next_date

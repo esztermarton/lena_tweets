@@ -3,6 +3,7 @@ dagster<1.0.0
 dagster-cron<1.0.0
 tweepy==3.9.0
 pandas==1.1.4
+peewee
 jupyter==1.0.0
 pytest==6.1.2
 nest_asyncio

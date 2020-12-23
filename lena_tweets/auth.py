@@ -5,6 +5,7 @@ import tweepy
 
 from lena_tweets.config import CREDS
 
+
 def authenticate(cred_id: Optional[int] = None, wait=True):
     """
     Authenticates with one of a number of credentials configured in config
@@ -12,7 +13,9 @@ def authenticate(cred_id: Optional[int] = None, wait=True):
     If credentials contain consumer secret, will use that
     """
     if not CREDS:
-        raise ValueError("Fill in with at least 1 set of twitter application credentials to use module")
+        raise ValueError(
+            "Fill in with at least 1 set of twitter application credentials to use module"
+        )
     if cred_id is None:
         cred_id = (datetime.now().minute // 15) % len(CREDS)
 
@@ -23,12 +26,13 @@ def authenticate(cred_id: Optional[int] = None, wait=True):
     access_token = creds.get("ACCESS_TOKEN")
     access_token_secret = creds.get("ACCESS_TOKEN_SECRET")
     if not (bool(access_token) is bool(access_token_secret)):
-        raise ValueError("Either both or neither one of ACCESS_TOKEN and ACCESS_TOKEN_SECRET must be given")
+        raise ValueError(
+            "Either both or neither one of ACCESS_TOKEN and ACCESS_TOKEN_SECRET must be given"
+        )
 
     auth = tweepy.OAuthHandler(api_key, key_secret)
     if access_token:
         auth.set_access_token(access_token, access_token_secret)
-    
+
     api = tweepy.API(auth, wait_on_rate_limit=wait, wait_on_rate_limit_notify=wait)
     return api
-

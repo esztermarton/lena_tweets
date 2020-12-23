@@ -1,10 +1,8 @@
 from dagster import execute_pipeline, pipeline
 
 from lena_tweets.solids import (
-    read_in_user, 
     get_friends_of_user,
     get_ids_collect_info,
-    lookup_users_daily, 
     collect_tweets_of_users,
 )
 
@@ -21,9 +19,7 @@ def tweet_history():
 
 @pipeline
 def daily_user_scrape():
-    handle = read_in_user()
-    friend_ids = get_friends_of_user(handle)
-    lookup_users_daily(friend_ids)
+    get_friends_of_user()
 
 
 @pipeline

@@ -15,12 +15,16 @@ def retry_decorator(total_retry_number=10):
             except tweepy.error.TweepError as exc:
                 try_number += 1
                 if try_number < total_retry_number:
-                    args[0].warning(f"TweepyError. Will retry {total_retry_number - try_number} more times.")
+                    args[0].warning(
+                        f"TweepyError. Will retry {total_retry_number - try_number} more times."
+                    )
                     return wrapper(*args, try_number=try_number, **kwargs)
                 else:
                     args[0].warning("TweepyError. No more retries left")
                     raise
+
         return wrapper
+
     return fix_retry_decorator
 
 
@@ -39,8 +43,7 @@ def _get_data_points(log, func, count: int = 200):
         new_data, (_, cursor) = func(count=count, cursor=cursor)
         datapoints.extend(new_data)
         log.info(f"Got {len(new_data)} datapoints")
-        
- 
+
     return datapoints
 
 
@@ -67,13 +70,17 @@ def get_friends(log, screen_name: str, count: int = 200) -> Tuple[User, List[Use
     return user, friends
 
 
-def lookup_users(log, ids: List[Union[int, str]], screen_name: bool = False) -> List[User]:
+def lookup_users(
+    log, ids: List[Union[int, str]], screen_name: bool = False
+) -> List[User]:
     users = []
     log.info(f"In lookup users")
     for i in range(len(ids) // 100 + 1):
         intex_lower, index_upper = i * 100, (i + 1) * 100
         users.extend(
-            lookup_100_friends(log, ids[intex_lower:index_upper], screen_name=screen_name)
+            lookup_100_friends(
+                log, ids[intex_lower:index_upper], screen_name=screen_name
+            )
         )
         log.info(f"Extended with {index_upper - intex_lower} users")
 
@@ -105,7 +112,9 @@ def get_friends_ids(log, handle: str, count: int = 5000) -> List[int]:
 
 
 @retry_decorator()
-def get_user_tweets(log, user_id: int, since_id: Optional[int] = None, count: int = 200, wait=True) -> List[Status]:
+def get_user_tweets(
+    log, user_id: int, since_id: Optional[int] = None, count: int = 200, wait=True
+) -> List[Status]:
     """
     Returns tweets of a user
     """
@@ -121,7 +130,7 @@ def get_user_tweets(log, user_id: int, since_id: Optional[int] = None, count: in
             tweets = []
         else:
             raise
-    
+
     return tweets
 
 
@@ -129,15 +138,19 @@ def get_user_tweets(log, user_id: int, since_id: Optional[int] = None, count: in
 def _get_tweets(log, user_id: int, latest_tweet_id: int, count=200) -> List[Status]:
     api = authenticate()
 
-    latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=count)
+    latest_tweets = api.user_timeline(
+        user_id=user_id, max_id=latest_tweet_id, count=count
+    )
     timeout = 0
     while not latest_tweets:
         log.info("Latest tweets is empty")
         if timeout > 10:
             raise RuntimeError
         timeout += 1
-        latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=count)
-        
+        latest_tweets = api.user_timeline(
+            user_id=user_id, max_id=latest_tweet_id, count=count
+        )
+
     return latest_tweets
 
 
@@ -151,18 +164,22 @@ def get_all_most_recent_tweets(log, user_id: int) -> List[Status]:
     latest_tweet_id = None
 
     log.info(f"Getting most recent tweets for user {user_id}")
-    
+
     api = authenticate()
     try:
-        latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=200)
+        latest_tweets = api.user_timeline(
+            user_id=user_id, max_id=latest_tweet_id, count=200
+        )
         timeout = 0
         while not latest_tweets:
             log.info("Latest tweets is empty")
             if timeout > 2:
                 return []
             timeout += 1
-            latest_tweets = api.user_timeline(user_id=user_id, max_id=latest_tweet_id, count=200)
-  
+            latest_tweets = api.user_timeline(
+                user_id=user_id, max_id=latest_tweet_id, count=200
+            )
+
     except tweepy.error.TweepError as exc:
         if "Not authorized" in str(exc):
             log.warning(str(exc))
@@ -172,12 +189,12 @@ def get_all_most_recent_tweets(log, user_id: int) -> List[Status]:
             raise
 
     tweets.extend(latest_tweets)
-    
+
     while latest_tweets[-1].id != latest_tweet_id:
         log.debug("More tweets to fetch")
         latest_tweet_id = latest_tweets[-1].id
         latest_tweets = _get_tweets(log, user_id, latest_tweets[-1].id, count=200)
-        
+
         tweets.extend(latest_tweets[1:])
 
     return tweets
