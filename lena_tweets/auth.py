@@ -6,7 +6,7 @@ import tweepy
 from lena_tweets.config import CREDS
 
 
-def authenticate(cred_id: Optional[int] = None, wait=True):
+def authenticate(cred_id: Optional[int] = None, wait=False):
     """
     Authenticates with one of a number of credentials configured in config
     
