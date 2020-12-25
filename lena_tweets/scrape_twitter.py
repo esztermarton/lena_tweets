@@ -13,7 +13,9 @@ def retry_decorator(total_retry_number=8):
             try:
                 return twitter_func(*args, **kwargs)
             except tweepy.RateLimitError as exc:
-                context.log.error("tweepy.RateLimitError, raising, since this gets handled above.")
+                context.log.error(
+                    "tweepy.RateLimitError, raising, since this gets handled above."
+                )
                 raise
             except tweepy.error.TweepError as exc:
                 try_number += 1

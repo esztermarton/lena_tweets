@@ -58,7 +58,9 @@ def get_ids_collect_info(context):
         try:
             user, friends = get_friends(context.log, screen_name)
         except tweepy.RateLimitError as exc:
-            context.log.error("Rate limit reached. Sleeping for the next round 3 minutes")
+            context.log.error(
+                "Rate limit reached. Sleeping for the next round 3 minutes"
+            )
             minute = datetime.now().minute
             while datetime.now().minute == minute or datetime.now().minute % 3 != 0:
                 time.sleep(5)
@@ -116,7 +118,6 @@ def get_friends_of_users(context):
             break
 
 
-
 def get_friends_of_user(context):
     """
     Collects friends of a user and appends it to a csv file.
@@ -151,7 +152,7 @@ def collect_tweets_of_users(context, all_tweets: bool = False):
         except tweepy.RateLimitError as exc:
             context.log.error("tweepy.RateLimitError, will continue from here.")
             break
-    
+
     context.log.info("Have been running for over 3 minutes, returning")
     return
 

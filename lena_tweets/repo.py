@@ -40,7 +40,7 @@ def outstanding_tweet_history(_):
 @minute_schedule(
     pipeline_name="daily_user_scrape",
     start_date=datetime(2020, 12, today_day),
-    cron_schedule = "*/3 * * * *",
+    cron_schedule="*/3 * * * *",
     should_execute=queue_people,
 )
 def my_three_minute_schedule(date):
@@ -54,9 +54,11 @@ def my_three_minute_schedule(date):
 
 
 @minute_schedule(
-    pipeline_name="daily_tweet_scrape", start_date=datetime(2020, 12, today_day)
+    pipeline_name="daily_tweet_scrape",
+    cron_schedule="*/3 * * * *",
+    start_date=datetime(2020, 12, today_day),
 )
-def my_minute_schedule_tweet(date):
+def my_three_minute_schedule_tweet(date):
     return {
         "solids": {
             "collect_tweets_of_users": {
@@ -69,9 +71,10 @@ def my_minute_schedule_tweet(date):
 @minute_schedule(
     pipeline_name="tweet_history",
     start_date=datetime(2020, 12, today_day),
+    cron_schedule="*/3 * * * *",
     should_execute=outstanding_tweet_history,
 )
-def my_minute_schedule_tweet_history(date):
+def my_three_minute_schedule_tweet_history(date):
     return {
         "solids": {
             "collect_tweets_of_users": {
@@ -88,8 +91,8 @@ def repo():
         daily_user_scrape,
         my_three_minute_schedule,
         daily_tweet_scrape,
-        my_minute_schedule_tweet,
+        my_three_minute_schedule_tweet,
         kick_off_study,
         tweet_history,
-        my_minute_schedule_tweet_history,
+        my_three_minute_schedule_tweet_history,
     ]
