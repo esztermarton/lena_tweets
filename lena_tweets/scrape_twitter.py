@@ -13,7 +13,7 @@ def retry_decorator(total_retry_number=8):
             try:
                 return twitter_func(*args, **kwargs)
             except tweepy.RateLimitError as exc:
-                context.log.error(
+                args[0].error(
                     "tweepy.RateLimitError, raising, since this gets handled above."
                 )
                 raise
@@ -149,8 +149,8 @@ def _get_tweets(log, user_id: int, latest_tweet_id: int, count=200) -> List[Stat
     timeout = 0
     while not latest_tweets:
         log.info("Latest tweets is empty")
-        if timeout > 10:
-            raise RuntimeError
+        if timeout > 20:
+            return []
         timeout += 1
         latest_tweets = api.user_timeline(
             user_id=user_id, max_id=latest_tweet_id, count=count

@@ -34,7 +34,7 @@ def queue_people(_):
 
 @connection_manager()
 def outstanding_tweet_history(_):
-    return bool(Tracker.select().where(Tracker.latest_tweet_id.is_null(False)).count())
+    return bool(Tracker.select().where(Tracker.latest_tweet_id.is_null()).count())
 
 
 @minute_schedule(

@@ -161,7 +161,7 @@ def collect_tweets_of_users(context, all_tweets: bool = False):
 def _get_next_user_for_tweets():
     never_checked = Tracker.select().where(Tracker.tweets_last_retrieved.is_null())
     if never_checked.count():
-        return never_checked.first().user_id
+        return never_checked.first()
     return Tracker.select().orderby(Tracker.tweets_last_retrieved).first()
 
 
@@ -201,7 +201,7 @@ def collect_tweets_of_user(context, all_tweets: bool = False):
 
     context.log.info(f"Collected {len(statuses)} tweets for user {user_id}")
 
-    _update_item(next_item, statuses.iloc[0]["id"])
+    _update_item(next_item, statuses.iloc[0]["id"] if len(statuses) else None)
 
     context.log.info(f"Updated user_id {user_id}, {len(statuses)} new tweets")
 
