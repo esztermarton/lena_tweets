@@ -20,11 +20,11 @@ today_day = datetime.now().day
 @connection_manager()
 def queue_people(_):
     """Returns whether people are left that haven't yet been checked"""
-    today = datetime().now()
-    today_date = datetime(today.year, today.month, today.date)
+    today = datetime.now()
+    today_date = datetime(today.year, today.month, today.day)
     not_checked_today = Tracker.select().where(
         (
-            (Tracker.friends_last_retrieved.isnull())
+            (Tracker.friends_last_retrieved.is_null())
             | (Tracker.friends_last_retrieved < today_date)
         )
         & (Tracker.participant == True)
@@ -34,14 +34,16 @@ def queue_people(_):
 
 @connection_manager()
 def outstanding_tweet_history(_):
-    return bool(Tracker.select().where(Tracker.latest_tweet_id.isnull(False)).count())
+    return bool(Tracker.select().where(Tracker.latest_tweet_id.is_null(False)).count())
+
 
 @minute_schedule(
     pipeline_name="daily_user_scrape",
     start_date=datetime(2020, 12, today_day),
+    cron_schedule = "*/3 * * * *",
     should_execute=queue_people,
 )
-def my_minute_schedule(date):
+def my_three_minute_schedule(date):
     return {
         "solids": {
             "get_friends_of_user": {
@@ -84,7 +86,7 @@ def my_minute_schedule_tweet_history(date):
 def repo():
     return [
         daily_user_scrape,
-        my_minute_schedule,
+        my_three_minute_schedule,
         daily_tweet_scrape,
         my_minute_schedule_tweet,
         kick_off_study,

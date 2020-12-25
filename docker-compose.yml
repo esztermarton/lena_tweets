@@ -1,6 +1,17 @@
 version: '3'
 services:
-    eip-postgres:
+    lena-app:
+        build: .
+        container_name: lena-app
+        restart: on-failure
+        depends_on:
+            - lena-postgres
+        ports:
+          - "3003:3003"
+        volumes:
+            - ./data:/app/data
+            - ./lena_tweets/config.py:/app/lena_tweets/config.py
+    lena-postgres:
         image: postgres:12
         container_name: lena-postgres
         restart: on-failure

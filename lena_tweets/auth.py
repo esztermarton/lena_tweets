@@ -16,8 +16,9 @@ def authenticate(cred_id: Optional[int] = None, wait=True):
         raise ValueError(
             "Fill in with at least 1 set of twitter application credentials to use module"
         )
+    minute_of_day = datetime.now().minute + datetime.now().hour * 60
     if cred_id is None:
-        cred_id = (datetime.now().minute // 15) % len(CREDS)
+        cred_id = (minute_of_day // 3) % len(CREDS)
 
     creds = CREDS[cred_id]
 

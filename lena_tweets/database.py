@@ -9,11 +9,11 @@ from peewee import (
     DateTimeField,
     DeferredForeignKey,
     ForeignKeyField,
-    IntegerField,
+    BigIntegerField,
     ModelSelect,
     ProgrammingError,
     TextField,
-    Model
+    Model,
 )
 from playhouse.postgres_ext import BinaryJSONField, PostgresqlExtDatabase
 from playhouse.signals import Model
@@ -41,6 +41,12 @@ class ConnectionContext(ContextDecorator):
             self.db.connect()
             ConnectionContext.global_in_context = True
 
+        try:
+            # See if the tables are set up
+            Tracker.get_or_none(id=0)
+        except ProgrammingError:
+            create_tables(self.db)
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not self.db.in_transaction() and not self.dont_close_connection:
             self.db.close()
@@ -48,13 +54,13 @@ class ConnectionContext(ContextDecorator):
 
 
 def get_database():
-    db_name = config.DATABASE_NAME
+    db_name = lena_tweets.config.DATABASE_NAME
     database.init(
         db_name,
-        host=config.POSTGRES_HOST,
-        port=config.POSTGRES_PORT,
-        user=config.POSTGRES_USER,
-        password=config.POSTGRES_PASSWORD,
+        host=lena_tweets.config.POSTGRES_HOST,
+        port=lena_tweets.config.POSTGRES_PORT,
+        user=lena_tweets.config.POSTGRES_USER,
+        password=lena_tweets.config.POSTGRES_PASSWORD,
     )
     return database
 
@@ -89,8 +95,8 @@ class Tracker(Model):
     Tracking object to know who's tweets and users have last been updated.
     """
 
-    user_id = IntegerField(unique=True)
-    latest_tweet_id = IntegerField(null=True)
+    user_id = BigIntegerField(unique=True)
+    latest_tweet_id = BigIntegerField(null=True)
     tweets_last_retrieved = DateTimeField(null=True)
     friends_last_retrieved = DateTimeField(null=True)
     creation_date = DateTimeField(default=datetime.utcnow())

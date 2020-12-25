@@ -57,6 +57,12 @@ def get_ids_collect_info(context):
             continue
         try:
             user, friends = get_friends(context.log, screen_name)
+        except tweepy.RateLimitError as exc:
+            context.log.error("Rate limit reached. Sleeping for the next round 3 minutes")
+            minute = datetime.now().minute
+            while datetime.now().minute == minute or datetime.now().minute % 3 != 0:
+                time.sleep(5)
+            user, friends = get_friends(context.log, screen_name)
         except tweepy.error.TweepError as exc:
             context.log.error(str(exc))
             continue
@@ -69,7 +75,7 @@ def get_ids_collect_info(context):
                 screen_names_already_seen.add(u.screen_name)
 
             # First element in list is the participant themselves
-            _add_to_tracker(u.user_id, participant=(i == 0))
+            _add_to_tracker(u.id, participant=(i == 0))
 
         df = _convert_friends_to_dataframe(new_users)
         df.to_csv(study_start_path, index=False, mode="a", header=header)
@@ -78,7 +84,7 @@ def get_ids_collect_info(context):
 @connection_manager()
 def _add_to_tracker(user_id: int, participant: bool = False):
     user, _ = Tracker.get_or_create(user_id=user_id)
-    if particpant or user.participant:
+    if participant:
         user.participant = True
         user.friends_last_retrieved = datetime.now()
         user.save()
@@ -87,7 +93,7 @@ def _add_to_tracker(user_id: int, participant: bool = False):
 @connection_manager()
 def _get_next_user() -> int:
     never_checked = Tracker.select().where(
-        (Tracker.friends_last_retrieved.isnull()) & (Tracker.participant == True)
+        (Tracker.friends_last_retrieved.is_null()) & (Tracker.participant == True)
     )
     if never_checked.count():
         return never_checked.first().user_id
@@ -101,11 +107,19 @@ def _get_next_user() -> int:
 
 
 @solid(config_schema={"timestamp": str})
+def get_friends_of_users(context):
+    for _ in range(10):
+        try:
+            get_friends_of_user(context)
+        except tweepy.RateLimitError as exc:
+            context.log.error("tweepy.RateLimitError, will continue from here.")
+            break
+
+
+
 def get_friends_of_user(context):
     """
     Collects friends of a user and appends it to a csv file.
-
-    Returns the list of integers for friends' ids.
     """
     next_user_id = _get_next_user()
 
@@ -122,6 +136,8 @@ def get_friends_of_user(context):
     for u in friends_ids:
         _add_to_tracker(u)
 
+    _add_to_tracker(next_user_id, participant=True)
+
 
 @solid(config_schema={"timestamp": str})
 def collect_tweets_of_users(context, all_tweets: bool = False):
@@ -129,16 +145,20 @@ def collect_tweets_of_users(context, all_tweets: bool = False):
     Collects tweets the user tweets
     """
     initial_timestamp = datetime.now()
-    for _ in range(70):
-        collect_tweets_of_user(context, all_tweets=all_tweets)
-        if datetime.now() - initial_timestamp > timedelta(minutes=1):
-            context.log.info("Have been running for over 1 minute, returning")
-            return
+    while datetime.now() - initial_timestamp < timedelta(minutes=3):
+        try:
+            collect_tweets_of_user(context, all_tweets=all_tweets)
+        except tweepy.RateLimitError as exc:
+            context.log.error("tweepy.RateLimitError, will continue from here.")
+            break
+    
+    context.log.info("Have been running for over 3 minutes, returning")
+    return
 
 
 @connection_manager()
 def _get_next_user_for_tweets():
-    never_checked = Tracker.select().where(Tracker.tweets_last_retrieved.isnull())
+    never_checked = Tracker.select().where(Tracker.tweets_last_retrieved.is_null())
     if never_checked.count():
         return never_checked.first().user_id
     return Tracker.select().orderby(Tracker.tweets_last_retrieved).first()

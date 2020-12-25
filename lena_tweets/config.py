@@ -9,7 +9,7 @@ DAILY_TWEETS_PATH = "/app/data/{}_tweets.csv"
 
 DATABASE_NAME = "lena_db"
 POSTGRES_HOST = "lena-postgres"
-POSTGRES_PORT = 5432 # default
+POSTGRES_PORT = 5432  # default
 POSTGRES_USER = "lena"
 POSTGRES_PASSWORD = "lena_123"
 

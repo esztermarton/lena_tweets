@@ -7,11 +7,14 @@ from tweepy import User, Status
 from lena_tweets.auth import authenticate
 
 
-def retry_decorator(total_retry_number=10):
+def retry_decorator(total_retry_number=8):
     def fix_retry_decorator(twitter_func):
         def wrapper(*args, try_number=0, **kwargs):
             try:
                 return twitter_func(*args, **kwargs)
+            except tweepy.RateLimitError as exc:
+                context.log.error("tweepy.RateLimitError, raising, since this gets handled above.")
+                raise
             except tweepy.error.TweepError as exc:
                 try_number += 1
                 if try_number < total_retry_number:

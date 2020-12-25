@@ -23,6 +23,7 @@ from dagster.utils.partitions import (
 def minute_schedule(
     pipeline_name,
     start_date,
+    cron_schedule="* * * * *",
     name=None,
     tags_fn_for_date=None,
     solid_selection=None,
@@ -75,8 +76,6 @@ def minute_schedule(
         warnings.warn(
             "`start_date` must be at the beginning of the minute for a per minute schedule. "
         )
-
-    cron_schedule = "* * * * *"
 
     fmt = (
         DEFAULT_HOURLY_FORMAT_WITH_TIMEZONE

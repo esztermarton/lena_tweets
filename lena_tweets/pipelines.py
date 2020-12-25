@@ -1,7 +1,7 @@
 from dagster import execute_pipeline, pipeline
 
 from lena_tweets.solids import (
-    get_friends_of_user,
+    get_friends_of_users,
     get_ids_collect_info,
     collect_tweets_of_users,
 )
@@ -19,7 +19,7 @@ def tweet_history():
 
 @pipeline
 def daily_user_scrape():
-    get_friends_of_user()
+    get_friends_of_users()
 
 
 @pipeline
