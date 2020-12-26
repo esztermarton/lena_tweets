@@ -54,6 +54,7 @@ def get_ids_collect_info(context):
 
     for screen_name in screen_names:
         if screen_name in screen_names_already_seen:
+            context.log.debug("{screen_name} already seen")
             continue
         try:
             user, friends = get_friends(context.log, screen_name)

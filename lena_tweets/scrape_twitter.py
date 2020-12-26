@@ -1,3 +1,5 @@
+import time
+from datetime import datetime
 from functools import partial
 from typing import List, Optional, Union, Tuple
 
@@ -21,7 +23,7 @@ def retry_decorator(total_retry_number=8):
                 try_number += 1
                 if try_number < total_retry_number:
                     args[0].warning(
-                        f"TweepyError. Will retry {total_retry_number - try_number} more times."
+                        f"TweepyError {exc}.\nWill retry {total_retry_number - try_number} more times."
                     )
                     return wrapper(*args, try_number=try_number, **kwargs)
                 else:
@@ -34,7 +36,7 @@ def retry_decorator(total_retry_number=8):
 
 
 @retry_decorator()
-def _get_data_points(log, func, count: int = 200):
+def _get_data_points(log, func, count: int = 200, cursor: int = -1):
     """
     Gets paginated endpoint where the return has format
     new_data, (cursor x, cursor y)
@@ -42,17 +44,25 @@ def _get_data_points(log, func, count: int = 200):
     Returns list of datapoints
     """
     datapoints = []
-    cursor = -1
 
     while cursor != 0:
-        new_data, (_, cursor) = func(count=count, cursor=cursor)
+        try:
+            new_data, (_, cursor) = func(count=count, cursor=cursor)
+        except tweepy.RateLimitError as exc:
+            if cursor == -1:
+                # Never return -1 due to error so that that is a special case for
+                # no friends
+                cursor = None
+            break
         datapoints.extend(new_data)
         log.info(f"Got {len(new_data)} datapoints")
 
-    return datapoints
+    return datapoints, cursor
 
 
-def get_friends(log, screen_name: str, count: int = 200) -> Tuple[User, List[User]]:
+def get_friends(
+    log, screen_name: str, count: int = 200, cursor: int = -1
+) -> Tuple[User, List[User]]:
     """
     Generates list of people that twitter user with particular handle follows.
     """
@@ -62,8 +72,9 @@ def get_friends(log, screen_name: str, count: int = 200) -> Tuple[User, List[Use
     log.info(f"Fetched user {user.id}")
 
     try:
-        friends = _get_data_points(log, user.friends, count=count)
-        log.info(f"Got {len(friends)} new friends")
+        friends, cursor = _get_data_points(
+            log, user.friends, count=count, cursor=cursor
+        )
     except tweepy.error.TweepError as exc:
         if "Not authorized" in str(exc):
             log.warning(str(exc))
@@ -71,7 +82,18 @@ def get_friends(log, screen_name: str, count: int = 200) -> Tuple[User, List[Use
             friends = []
         else:
             raise
-
+    if cursor != 0 and cursor != -1:
+        cursor = cursor or -1
+        # This means that while loop didn't break - more than 15 requests necessary
+        # for friend. So, recursively get more friends starting from where we left off
+        log.error("Rate limit reached. Sleeping for the next round 3 minutes")
+        minute = datetime.now().minute
+        # Wait for next code...
+        while datetime.now().minute == minute or datetime.now().minute % 3 != 0:
+            time.sleep(5)
+        # Extend with more friends - ignore original uuserr...
+        friends.extend(get_friends(log, screen_name, count=count, cursor=cursor)[1])
+    log.info(f"Got {len(friends)} new friends")
     return user, friends
 
 
@@ -103,14 +125,29 @@ def lookup_100_friends(
 
 
 @retry_decorator()
-def get_friends_ids(log, handle: str, count: int = 5000) -> List[int]:
+def get_friends_ids(log, handle: str, count: int = 5000, cursor: int = -1) -> List[int]:
     """
     Generates list of ids people that twitter user wih particular handle follows.
     """
     log.info(f"Getting friends ids for {handle}")
 
     api = authenticate()
-    friends = _get_data_points(log, partial(api.friends_ids, handle), count=count)
+    friends, cursor = _get_data_points(
+        log, partial(api.friends_ids, handle), count=count, cursor=cursor
+    )
+
+    if cursor != 0 and cursor != -1:
+        cursor = cursor or -1
+        # This means that while loop didn't break - more than 15 requests necessary
+        # for friend. So, recursively get more friends starting from where we left off
+        log.error("Rate limit reached. Sleeping for the next round 3 minutes")
+        minute = datetime.now().minute
+        # Wait for next code...
+        while datetime.now().minute == minute or datetime.now().minute % 3 != 0:
+            time.sleep(5)
+        # Extend with more friends - ignore original uuserr...
+        friends.extend(get_friends_ids(log, screen_name, count=count, cursor=cursor)[1])
+
     log.info(f"{len(friends)} friends")
 
     return friends
@@ -195,7 +232,7 @@ def get_all_most_recent_tweets(log, user_id: int) -> List[Status]:
 
     tweets.extend(latest_tweets)
 
-    while latest_tweets[-1].id != latest_tweet_id:
+    while latest_tweets and latest_tweets[-1].id != latest_tweet_id:
         log.debug("More tweets to fetch")
         latest_tweet_id = latest_tweets[-1].id
         latest_tweets = _get_tweets(log, user_id, latest_tweets[-1].id, count=200)
