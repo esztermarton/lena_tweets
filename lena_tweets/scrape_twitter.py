@@ -20,6 +20,8 @@ def retry_decorator(total_retry_number=8):
                 )
                 raise
             except tweepy.error.TweepError as exc:
+                if "Not authorized" in str(exc):
+                    raise
                 try_number += 1
                 if try_number < total_retry_number:
                     args[0].warning(
