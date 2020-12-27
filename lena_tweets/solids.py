@@ -34,7 +34,7 @@ def get_ids_collect_info(context):
     """
 
     timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
-    study_start_path = STUDY_START_PATH.format(timestamp)
+    study_start_path = STUDY_START_PATH
 
     with open(STUDY_INPUT_START_PART) as f:
         screen_names = [f.strip() for f in f.readlines() if f.strip()]
