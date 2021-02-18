@@ -103,7 +103,7 @@ def _get_next_user() -> int:
     return (
         Tracker.select()
         .where(Tracker.participant == True)
-        .orderby(Tracker.friends_last_retrieved)
+        .order_by(Tracker.friends_last_retrieved)
         .first()
         .user_id
     )
@@ -128,7 +128,11 @@ def get_friends_of_user(context):
     timestamp = context.solid_config.get(
         "timestamp", datetime.now().strftime(TIMESTAMP_FORMAT)
     )
-    friends_ids = get_friends_ids(context.log, next_user_id)
+    try:
+        friends_ids = get_friends_ids(context.log, next_user_id)
+    except tweepy.error.TweepError as exc:
+        context.log.error(f"Unsuccessful fetch for user_id {next_user_id}: {exc}")
+        friends_ids = []
 
     header = not Path(DAILY_FRIENDS_CHECK_PATH.format(timestamp)).exists()
 
@@ -163,7 +167,7 @@ def _get_next_user_for_tweets():
     never_checked = Tracker.select().where(Tracker.tweets_last_retrieved.is_null())
     if never_checked.count():
         return never_checked.first()
-    return Tracker.select().orderby(Tracker.tweets_last_retrieved).first()
+    return Tracker.select().order_by(Tracker.tweets_last_retrieved).first()
 
 
 @connection_manager()

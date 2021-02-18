@@ -1,4 +1,4 @@
-from dagster import execute_pipeline, pipeline
+from dagster import pipeline
 
 from lena_tweets.solids import (
     get_friends_of_users,

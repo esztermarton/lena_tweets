@@ -46,7 +46,7 @@ def outstanding_tweet_history(_):
 def my_three_minute_schedule(date):
     return {
         "solids": {
-            "get_friends_of_user": {
+            "get_friends_of_users": {
                 "config": {"timestamp": date.strftime(TIMESTAMP_FORMAT)},
             },
         }

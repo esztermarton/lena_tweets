@@ -20,16 +20,17 @@ def retry_decorator(total_retry_number=8):
                 )
                 raise
             except tweepy.error.TweepError as exc:
-                if "Not authorized" in str(exc):
+                if "Not authorized" in str(exc) or "Sorry, that page does not exist." in str(exc):
+                    # No point retrying these
                     raise
                 try_number += 1
                 if try_number < total_retry_number:
                     args[0].warning(
-                        f"TweepyError {exc}.\nWill retry {total_retry_number - try_number} more times."
+                        f"TweepError {exc}.\nWill retry {total_retry_number - try_number} more times."
                     )
                     return wrapper(*args, try_number=try_number, **kwargs)
                 else:
-                    args[0].warning("TweepyError. No more retries left")
+                    args[0].warning("TweepError. No more retries left")
                     raise
 
         return wrapper
